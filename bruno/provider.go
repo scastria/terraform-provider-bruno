@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/scastria/terraform-provider-bruno/bruno/client"
 )
 
 func Provider() *schema.Provider {
@@ -22,16 +23,12 @@ func Provider() *schema.Provider {
 }
 
 func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-	//host := d.Get("host").(string)
-	//port := d.Get("port").(int)
-	//defaultDatabase := d.Get("default_database").(string)
-	//username := d.Get("username").(string)
-	//password := d.Get("password").(string)
-	//
+	collectionPath := d.Get("collection_path").(string)
+
 	var diags diag.Diagnostics
-	//c, err := client.NewClient(host, port, defaultDatabase, username, password)
-	//if err != nil {
-	//	return nil, diag.FromErr(err)
-	//}
-	return nil, diags
+	c, err := client.NewClient(collectionPath)
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+	return c, diags
 }
