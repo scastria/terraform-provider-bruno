@@ -16,7 +16,9 @@ func Provider() *schema.Provider {
 				Required: true,
 			},
 		},
-		ResourcesMap:         map[string]*schema.Resource{},
+		ResourcesMap: map[string]*schema.Resource{
+			"bruno_collection": resourceCollection(),
+		},
 		DataSourcesMap:       map[string]*schema.Resource{},
 		ConfigureContextFunc: providerConfigure,
 	}
