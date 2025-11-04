@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 )
@@ -35,11 +36,15 @@ func (bd *BruDoc) GetBlock(tag string) (BruBlock, error) {
 }
 
 func (bd *BruDoc) ExportDoc(filePath string) error {
+	err := os.MkdirAll(path.Dir(filePath), 0755)
+	if err != nil {
+		return err
+	}
 	var retVal strings.Builder
 	for _, block := range bd.Data {
 		retVal.WriteString(block.Export())
 	}
-	err := os.WriteFile(filePath, []byte(retVal.String()), 0644)
+	err = os.WriteFile(filePath, []byte(retVal.String()), 0644)
 	return err
 }
 

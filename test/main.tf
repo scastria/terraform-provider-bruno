@@ -24,10 +24,29 @@ resource "bruno_collection" "Collection" {
   }
   pre_request_script = split("\n",
   <<-EOT
-    now
-    is
-      indented
-    the
+    console.log("This is a pre-request script");
+  EOT
+  )
+}
+
+resource "bruno_folder" "Folder1" {
+  name = "Folder1"
+  auth = "inherit"
+}
+
+resource "bruno_folder" "ChildFolder" {
+  parent_folder_id = bruno_folder.Folder1.id
+  name = "Child Folder"
+  auth = "inherit"
+  tests = split("\n",
+  <<-EOT
+    test("Collection test: Request status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+    });
+
+    test("Endpoint test: Data array is not empty", function () {
+      expect(res.getBody().length).to.not.equal(0);
+    });
   EOT
   )
 }

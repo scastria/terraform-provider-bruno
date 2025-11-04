@@ -3,9 +3,7 @@ package bruno
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -27,6 +25,7 @@ func resourceCollection() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceCollectionCreate,
 		ReadContext:   resourceCollectionRead,
+		UpdateContext: resourceCollectionUpdate,
 		DeleteContext: resourceCollectionDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -34,12 +33,10 @@ func resourceCollection() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
-				ForceNew: true,
 				Required: true,
 			},
 			"auth": {
 				Type:     schema.TypeString,
-				ForceNew: true,
 				Optional: true,
 				Default:  "none",
 				ValidateFunc: validation.StringInSlice([]string{
@@ -56,23 +53,19 @@ func resourceCollection() *schema.Resource {
 			},
 			"pre_request_var": {
 				Type:     schema.TypeSet,
-				ForceNew: true,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"key": {
 							Type:     schema.TypeString,
-							ForceNew: true,
 							Required: true,
 						},
 						"value": {
 							Type:     schema.TypeString,
-							ForceNew: true,
 							Optional: true,
 						},
 						"disabled": {
 							Type:     schema.TypeBool,
-							ForceNew: true,
 							Optional: true,
 							Default:  false,
 						},
@@ -81,23 +74,19 @@ func resourceCollection() *schema.Resource {
 			},
 			"post_response_var": {
 				Type:     schema.TypeSet,
-				ForceNew: true,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"key": {
 							Type:     schema.TypeString,
-							ForceNew: true,
 							Required: true,
 						},
 						"value": {
 							Type:     schema.TypeString,
-							ForceNew: true,
 							Optional: true,
 						},
 						"disabled": {
 							Type:     schema.TypeBool,
-							ForceNew: true,
 							Optional: true,
 							Default:  false,
 						},
@@ -106,7 +95,6 @@ func resourceCollection() *schema.Resource {
 			},
 			"pre_request_script": {
 				Type:     schema.TypeList,
-				ForceNew: true,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -114,7 +102,6 @@ func resourceCollection() *schema.Resource {
 			},
 			"post_response_script": {
 				Type:     schema.TypeList,
-				ForceNew: true,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -124,32 +111,7 @@ func resourceCollection() *schema.Resource {
 	}
 }
 
-func createVariableDictBlockFromMap(tag string, variables *schema.Set) *dsl.BruDict {
-	retVal := dsl.BruDict{
-		Tag:  tag,
-		Data: make(map[string]interface{}),
-	}
-	for _, variable := range variables.List() {
-		variableMap := variable.(map[string]interface{})
-		varPrefix := ""
-		if variableMap["disabled"].(bool) {
-			varPrefix = dsl.DISABLED_PREFIX
-		}
-		retVal.Data[fmt.Sprintf("%s%s", varPrefix, variableMap["key"].(string))] = variableMap["value"].(string)
-	}
-	return &retVal
-}
-
-func createTextBlockFromArray(tag string, arr []interface{}) *dsl.BruText {
-	retVal := dsl.BruText{
-		Tag: tag,
-	}
-	lines := convertInterfaceArrayToStringArray(arr)
-	retVal.Data = strings.Join(lines, "\n")
-	return &retVal
-}
-
-func resourceCollectionCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func resourceCollectionCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m interface{}, isCreate bool) diag.Diagnostics {
 	var diags diag.Diagnostics
 	c := m.(*client.Client)
 	body := map[string]interface{}{
@@ -163,12 +125,16 @@ func resourceCollectionCreate(ctx context.Context, d *schema.ResourceData, m int
 	}
 	bytes, err := json.MarshalIndent(body, "", "  ")
 	if err != nil {
-		d.SetId("")
+		if isCreate {
+			d.SetId("")
+		}
 		return diag.FromErr(err)
 	}
 	err = os.WriteFile(c.GetAbsolutePath("bruno.json"), bytes, 0644)
 	if err != nil {
-		d.SetId("")
+		if isCreate {
+			d.SetId("")
+		}
 		return diag.FromErr(err)
 	}
 	bd := dsl.BruDoc{
@@ -217,30 +183,27 @@ func resourceCollectionCreate(ctx context.Context, d *schema.ResourceData, m int
 		postResponseScriptText := createTextBlockFromArray(COLLECTION_POST_RESPONSE_SCRIPT_TAG, postResponseScript.([]interface{}))
 		bd.Data = append(bd.Data, postResponseScriptText)
 	}
-	relativePath := "collection.bru"
-	err = bd.ExportDoc(c.GetAbsolutePath(relativePath))
+	absPath := c.GetAbsolutePath("collection.bru")
+	err = bd.ExportDoc(absPath)
 	if err != nil {
-		d.SetId("")
+		if isCreate {
+			d.SetId("")
+		}
+		return diag.FromErr(err)
+	}
+	relativePath, err := c.GetRelativePath(absPath)
+	if err != nil {
+		if isCreate {
+			d.SetId("")
+		}
 		return diag.FromErr(err)
 	}
 	d.SetId(relativePath)
 	return diags
 }
 
-func createMapFromVariableDictBlock(variableDict *dsl.BruDict) []map[string]interface{} {
-	var retVal []map[string]interface{}
-	for k, v := range variableDict.Data {
-		variableMap := map[string]interface{}{}
-		variableMap["key"] = strings.TrimPrefix(k, dsl.DISABLED_PREFIX)
-		variableMap["value"] = v
-		variableMap["disabled"] = strings.HasPrefix(k, dsl.DISABLED_PREFIX)
-		retVal = append(retVal, variableMap)
-	}
-	return retVal
-}
-
-func createArrayFromTextBlock(textBlock *dsl.BruText) []string {
-	return strings.Split(textBlock.Data, "\n")
+func resourceCollectionCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	return resourceCollectionCreateOrUpdate(ctx, d, m, true)
 }
 
 func resourceCollectionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -304,6 +267,10 @@ func resourceCollectionRead(ctx context.Context, d *schema.ResourceData, m inter
 		d.Set("post_response_script", postResponseScriptArr)
 	}
 	return diags
+}
+
+func resourceCollectionUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	return resourceCollectionCreateOrUpdate(ctx, d, m, false)
 }
 
 func resourceCollectionDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {

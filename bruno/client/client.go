@@ -10,8 +10,7 @@ type Client struct {
 }
 
 func NewClient(collectionPath string) (*Client, error) {
-	// Check for collection path existence
-	_, err := os.Stat(collectionPath)
+	err := os.MkdirAll(collectionPath, 0755)
 	if err != nil {
 		return nil, err
 	}
@@ -21,10 +20,11 @@ func NewClient(collectionPath string) (*Client, error) {
 	return c, nil
 }
 
-func (c *Client) GetAbsolutePath(relativePath string) string {
-	return filepath.Join(c.collectionPath, relativePath)
+func (c *Client) GetAbsolutePath(relativePaths ...string) string {
+	relativePaths = append([]string{c.collectionPath}, relativePaths...)
+	return filepath.Join(relativePaths...)
 }
 
-//func (c *Client) GetRelativePath(absolutePath string) string {
-//	return filepath.Join(c.collectionPath, relativePath)
-//}
+func (c *Client) GetRelativePath(absolutePath string) (string, error) {
+	return filepath.Rel(c.collectionPath, absolutePath)
+}
