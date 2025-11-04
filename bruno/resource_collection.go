@@ -3,12 +3,22 @@ package bruno
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/scastria/terraform-provider-bruno/bruno/client"
 	"github.com/scastria/terraform-provider-bruno/bruno/client/dsl"
+)
+
+const (
+	COLLECTION_META_TAG               = "meta"
+	COLLECTION_AUTH_TAG               = "auth"
+	COLLECTION_PRE_REQUEST_VARS_TAG   = "vars:pre-request"
+	COLLECTION_POST_RESPONSE_VARS_TAG = "vars:post-response"
 )
 
 func resourceCollection() *schema.Resource {
@@ -22,11 +32,94 @@ func resourceCollection() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
-				Required: true,
 				ForceNew: true,
+				Required: true,
+			},
+			"auth": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "none",
+				ValidateFunc: validation.StringInSlice([]string{
+					"none",
+					"apikey",
+					"awsv4",
+					"basic",
+					"bearer",
+					"digest",
+					"ntlm",
+					"oauth2",
+					"wsse",
+				}, false),
+			},
+			"pre_request_var": {
+				Type:     schema.TypeList,
+				ForceNew: true,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Required: true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Optional: true,
+						},
+						"disabled": {
+							Type:     schema.TypeBool,
+							ForceNew: true,
+							Optional: true,
+							Default:  false,
+						},
+					},
+				},
+			},
+			"post_response_var": {
+				Type:     schema.TypeList,
+				ForceNew: true,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Required: true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Optional: true,
+						},
+						"disabled": {
+							Type:     schema.TypeBool,
+							ForceNew: true,
+							Optional: true,
+							Default:  false,
+						},
+					},
+				},
 			},
 		},
 	}
+}
+
+func createVariableDictBlockFromMap(tag string, variables []interface{}) *dsl.BruDict {
+	retVal := dsl.BruDict{
+		Tag:  tag,
+		Data: make(map[string]interface{}),
+	}
+	for _, variable := range variables {
+		variableMap := variable.(map[string]interface{})
+		varPrefix := ""
+		if variableMap["disabled"].(bool) {
+			varPrefix = dsl.DISABLED_PREFIX
+		}
+		retVal.Data[fmt.Sprintf("%s%s", varPrefix, variableMap["key"].(string))] = variableMap["value"].(string)
+	}
+	return &retVal
 }
 
 func resourceCollectionCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -51,16 +144,39 @@ func resourceCollectionCreate(ctx context.Context, d *schema.ResourceData, m int
 		d.SetId("")
 		return diag.FromErr(err)
 	}
+	bd := dsl.BruDoc{
+		Data: []dsl.BruBlock{},
+	}
+	// meta
 	meta := dsl.BruDict{
-		Tag: "meta",
+		Tag: COLLECTION_META_TAG,
 		Data: map[string]interface{}{
 			"name": d.Get("name").(string),
 		},
 	}
-	bd := dsl.BruDoc{
-		Data: []dsl.BruBlock{
-			&meta,
-		},
+	bd.Data = append(bd.Data, &meta)
+	// auth
+	mode, ok := d.GetOk("auth")
+	if ok {
+		auth := dsl.BruDict{
+			Tag: COLLECTION_AUTH_TAG,
+			Data: map[string]interface{}{
+				"mode": mode.(string),
+			},
+		}
+		bd.Data = append(bd.Data, &auth)
+	}
+	// pre_request_var
+	preRequestVariables, ok := d.GetOk("pre_request_var")
+	if ok {
+		preRequestVarDict := createVariableDictBlockFromMap(COLLECTION_PRE_REQUEST_VARS_TAG, preRequestVariables.([]interface{}))
+		bd.Data = append(bd.Data, preRequestVarDict)
+	}
+	// post_response_var
+	postResponseVariables, ok := d.GetOk("post_response_var")
+	if ok {
+		postResponseVarDict := createVariableDictBlockFromMap(COLLECTION_POST_RESPONSE_VARS_TAG, postResponseVariables.([]interface{}))
+		bd.Data = append(bd.Data, postResponseVarDict)
 	}
 	relativePath := "collection.bru"
 	err = bd.ExportDoc(c.GetAbsolutePath(relativePath))
@@ -72,18 +188,34 @@ func resourceCollectionCreate(ctx context.Context, d *schema.ResourceData, m int
 	return diags
 }
 
+func createMapFromVariableDictBlock(variableDict *dsl.BruDict) []map[string]interface{} {
+	var retVal []map[string]interface{}
+	for k, v := range variableDict.Data {
+		variableMap := map[string]interface{}{}
+		variableMap["key"] = strings.TrimPrefix(k, dsl.DISABLED_PREFIX)
+		variableMap["value"] = v
+		variableMap["disabled"] = strings.HasPrefix(k, dsl.DISABLED_PREFIX)
+		retVal = append(retVal, variableMap)
+	}
+	return retVal
+}
+
 func resourceCollectionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 	c := m.(*client.Client)
 	collectionSchema := map[string]string{
-		"meta": dsl.DICT_TAG,
+		COLLECTION_META_TAG:               dsl.DICT_TAG,
+		COLLECTION_AUTH_TAG:               dsl.DICT_TAG,
+		COLLECTION_PRE_REQUEST_VARS_TAG:   dsl.DICT_TAG,
+		COLLECTION_POST_RESPONSE_VARS_TAG: dsl.DICT_TAG,
 	}
 	doc, err := dsl.ImportDoc(c.GetAbsolutePath(d.Id()), collectionSchema)
 	if err != nil {
 		d.SetId("")
 		return diag.FromErr(err)
 	}
-	metaBlock, err := doc.GetBlock("meta")
+	// meta
+	metaBlock, err := doc.GetBlock(COLLECTION_META_TAG)
 	if err != nil {
 		d.SetId("")
 		return diag.FromErr(err)
@@ -91,6 +223,27 @@ func resourceCollectionRead(ctx context.Context, d *schema.ResourceData, m inter
 	metaDict := metaBlock.(*dsl.BruDict)
 	name := metaDict.Data["name"].(string)
 	d.Set("name", name)
+	// auth
+	authBlock, err := doc.GetBlock(COLLECTION_AUTH_TAG)
+	if err == nil {
+		authDict := authBlock.(*dsl.BruDict)
+		auth := authDict.Data["mode"].(string)
+		d.Set("auth", auth)
+	}
+	// pre_request_var
+	preRequestVarBlock, err := doc.GetBlock(COLLECTION_PRE_REQUEST_VARS_TAG)
+	if err == nil {
+		preRequestVarDict := preRequestVarBlock.(*dsl.BruDict)
+		preRequestVariableMap := createMapFromVariableDictBlock(preRequestVarDict)
+		d.Set("pre_request_var", preRequestVariableMap)
+	}
+	// post_response_var
+	postResponseVarBlock, err := doc.GetBlock(COLLECTION_POST_RESPONSE_VARS_TAG)
+	if err == nil {
+		postResponseVarDict := postResponseVarBlock.(*dsl.BruDict)
+		postResponseVariableMap := createMapFromVariableDictBlock(postResponseVarDict)
+		d.Set("post_response_var", postResponseVariableMap)
+	}
 	return diags
 }
 

@@ -9,14 +9,15 @@ import (
 )
 
 const (
-	DICT_TAG    = "dict"
-	TEXT_TAG    = "text"
-	ARRAY_TAG   = "array"
-	BLANK       = `^\s*$`
-	BLOCK_START = `^\s*(?P<tag>\S+)\s*[{\[]$`
-	BLOCK_END   = `^\s*[}\]]$`
-	DICT_ITEM   = `^\s*(?P<key>\S+)\s*:\s*(?P<value>.*)\s*$`
-	ARRAY_ITEM  = `^\s*(?P<value>.+?),?\s*$`
+	DICT_TAG        = "dict"
+	TEXT_TAG        = "text"
+	ARRAY_TAG       = "array"
+	DISABLED_PREFIX = "~"
+	BLANK           = `^\s*$`
+	BLOCK_START     = `^\s*(?P<tag>\S+)\s*[{\[]$`
+	BLOCK_END       = `^\s*[}\]]$`
+	DICT_ITEM       = `^\s*(?P<key>\S+)\s*:\s*(?P<value>.*)\s*$`
+	ARRAY_ITEM      = `^\s*(?P<value>.+?),?\s*$`
 )
 
 type BruDoc struct {
