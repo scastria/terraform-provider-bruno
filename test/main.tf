@@ -13,15 +13,15 @@ provider "bruno" {
 resource "bruno_collection" "Collection" {
   name = "test"
   # auth = "apikey"
-  # pre_request_var {
-  #   key = "hi"
-  #   value = "there"
-  #   disabled = true
-  # }
-  # pre_request_var {
-  #   key = "hi2"
-  #   value = "there2"
-  # }
+  pre_request_var {
+    key = "hi"
+    value = "there"
+    disabled = true
+  }
+  pre_request_var {
+    key = "hi2"
+    value = "there2"
+  }
   # post_response_var {
   #   key = "hip"
   # }

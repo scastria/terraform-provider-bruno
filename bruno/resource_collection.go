@@ -53,7 +53,7 @@ func resourceCollection() *schema.Resource {
 				}, false),
 			},
 			"pre_request_var": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				ForceNew: true,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -78,7 +78,7 @@ func resourceCollection() *schema.Resource {
 				},
 			},
 			"post_response_var": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				ForceNew: true,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -106,12 +106,12 @@ func resourceCollection() *schema.Resource {
 	}
 }
 
-func createVariableDictBlockFromMap(tag string, variables []interface{}) *dsl.BruDict {
+func createVariableDictBlockFromMap(tag string, variables *schema.Set) *dsl.BruDict {
 	retVal := dsl.BruDict{
 		Tag:  tag,
 		Data: make(map[string]interface{}),
 	}
-	for _, variable := range variables {
+	for _, variable := range variables.List() {
 		variableMap := variable.(map[string]interface{})
 		varPrefix := ""
 		if variableMap["disabled"].(bool) {
@@ -169,13 +169,13 @@ func resourceCollectionCreate(ctx context.Context, d *schema.ResourceData, m int
 	// pre_request_var
 	preRequestVariables, ok := d.GetOk("pre_request_var")
 	if ok {
-		preRequestVarDict := createVariableDictBlockFromMap(COLLECTION_PRE_REQUEST_VARS_TAG, preRequestVariables.([]interface{}))
+		preRequestVarDict := createVariableDictBlockFromMap(COLLECTION_PRE_REQUEST_VARS_TAG, preRequestVariables.(*schema.Set))
 		bd.Data = append(bd.Data, preRequestVarDict)
 	}
 	// post_response_var
 	postResponseVariables, ok := d.GetOk("post_response_var")
 	if ok {
-		postResponseVarDict := createVariableDictBlockFromMap(COLLECTION_POST_RESPONSE_VARS_TAG, postResponseVariables.([]interface{}))
+		postResponseVarDict := createVariableDictBlockFromMap(COLLECTION_POST_RESPONSE_VARS_TAG, postResponseVariables.(*schema.Set))
 		bd.Data = append(bd.Data, postResponseVarDict)
 	}
 	relativePath := "collection.bru"
