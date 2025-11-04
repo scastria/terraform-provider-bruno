@@ -21,6 +21,10 @@ func NewClient(collectionPath string) (*Client, error) {
 	return c, nil
 }
 
-func (c *Client) GetPath(path string) string {
-	return filepath.Join(c.collectionPath, path)
+func (c *Client) GetAbsolutePath(relativePath string) string {
+	return filepath.Join(c.collectionPath, relativePath)
 }
+
+//func (c *Client) GetRelativePath(absolutePath string) string {
+//	return filepath.Join(c.collectionPath, relativePath)
+//}

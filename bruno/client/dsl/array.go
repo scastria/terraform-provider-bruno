@@ -12,12 +12,16 @@ type BruArray struct {
 	Data []string
 }
 
-func (bt *BruArray) Export() string {
+func (ba *BruArray) GetTag() string {
+	return ba.Tag
+}
+
+func (ba *BruArray) Export() string {
 	var retVal strings.Builder
-	retVal.WriteString(fmt.Sprintf("%s [\n", bt.Tag))
-	for i, v := range bt.Data {
+	retVal.WriteString(fmt.Sprintf("%s [\n", ba.Tag))
+	for i, v := range ba.Data {
 		suffix := ","
-		if i == len(bt.Data)-1 {
+		if i == len(ba.Data)-1 {
 			suffix = ""
 		}
 		retVal.WriteString(fmt.Sprintf("\t%s%s\n", v, suffix))

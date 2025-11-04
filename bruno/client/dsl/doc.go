@@ -23,12 +23,22 @@ type BruDoc struct {
 	Data []BruBlock
 }
 
-func (bt *BruDoc) Export() string {
+func (bd *BruDoc) GetBlock(tag string) (BruBlock, error) {
+	for _, block := range bd.Data {
+		if block.GetTag() == tag {
+			return block, nil
+		}
+	}
+	return nil, fmt.Errorf("Block with tag %s not found", tag)
+}
+
+func (bd *BruDoc) ExportDoc(filePath string) error {
 	var retVal strings.Builder
-	for _, block := range bt.Data {
+	for _, block := range bd.Data {
 		retVal.WriteString(block.Export())
 	}
-	return retVal.String()
+	err := os.WriteFile(filePath, []byte(retVal.String()), 0644)
+	return err
 }
 
 func ImportDoc(filePath string, schema map[string]string) (*BruDoc, error) {

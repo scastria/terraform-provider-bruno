@@ -12,10 +12,14 @@ type BruDict struct {
 	Data map[string]interface{}
 }
 
-func (bt *BruDict) Export() string {
+func (bd *BruDict) GetTag() string {
+	return bd.Tag
+}
+
+func (bd *BruDict) Export() string {
 	var retVal strings.Builder
-	retVal.WriteString(fmt.Sprintf("%s {\n", bt.Tag))
-	for k, v := range bt.Data {
+	retVal.WriteString(fmt.Sprintf("%s {\n", bd.Tag))
+	for k, v := range bd.Data {
 		retVal.WriteString(fmt.Sprintf("\t%s: %v\n", k, v))
 	}
 	retVal.WriteString("}\n")

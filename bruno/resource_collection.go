@@ -15,7 +15,6 @@ func resourceCollection() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceCollectionCreate,
 		ReadContext:   resourceCollectionRead,
-		UpdateContext: resourceCollectionUpdate,
 		DeleteContext: resourceCollectionDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -24,6 +23,7 @@ func resourceCollection() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -46,13 +46,11 @@ func resourceCollectionCreate(ctx context.Context, d *schema.ResourceData, m int
 		d.SetId("")
 		return diag.FromErr(err)
 	}
-	filePath := c.GetPath("bruno.json")
-	err = os.WriteFile(filePath, bytes, 0644)
+	err = os.WriteFile(c.GetAbsolutePath("bruno.json"), bytes, 0644)
 	if err != nil {
 		d.SetId("")
 		return diag.FromErr(err)
 	}
-	filePath = c.GetPath("collection.bru")
 	meta := dsl.BruDict{
 		Tag: "meta",
 		Data: map[string]interface{}{
@@ -64,84 +62,49 @@ func resourceCollectionCreate(ctx context.Context, d *schema.ResourceData, m int
 			&meta,
 		},
 	}
-	err = os.WriteFile(filePath, []byte(bd.Export()), 0644)
+	relativePath := "collection.bru"
+	err = bd.ExportDoc(c.GetAbsolutePath(relativePath))
 	if err != nil {
 		d.SetId("")
 		return diag.FromErr(err)
 	}
-	d.SetId(filePath)
+	d.SetId(relativePath)
 	return diags
 }
 
 func resourceCollectionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
-	//workspaceId, id := client.CollectionDecodeId(d.Id())
-	//c := m.(*client.Client)
-	//requestPath := fmt.Sprintf(client.CollectionPathGet, id)
-	//body, err := c.HttpRequest(ctx, http.MethodGet, requestPath, nil, nil, &bytes.Buffer{})
-	//if err != nil {
-	//	d.SetId("")
-	//	re := err.(*client.RequestError)
-	//	if re.StatusCode == http.StatusNotFound {
-	//		return diags
-	//	}
-	//	return diag.FromErr(err)
-	//}
-	//retVal := &client.CollectionContainer{}
-	//err = json.NewDecoder(body).Decode(retVal)
-	//if err != nil {
-	//	d.SetId("")
-	//	return diag.FromErr(err)
-	//}
-	//retVal.Child.Info.WorkspaceId = workspaceId
-	//fillResourceDataFromCollection(retVal, d)
-	return diags
-}
-
-func resourceCollectionUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-	//workspaceId, id := client.CollectionDecodeId(d.Id())
-	//c := m.(*client.Client)
-	//buf := bytes.Buffer{}
-	//upCollection := client.CollectionUpdateContainer{}
-	//fillCollectionUpdate(&upCollection, d)
-	//err := json.NewEncoder(&buf).Encode(upCollection)
-	//if err != nil {
-	//	return diag.FromErr(err)
-	//}
-	//requestPath := fmt.Sprintf(client.CollectionPathGet, id)
-	//requestHeaders := http.Header{
-	//	headers.ContentType: []string{client.ApplicationJson},
-	//}
-	//_, err = c.HttpRequest(ctx, http.MethodPatch, requestPath, nil, requestHeaders, &buf)
-	//if err != nil {
-	//	return diag.FromErr(err)
-	//}
-	//// Must re-read the collection to get the full response
-	//requestPath = fmt.Sprintf(client.CollectionPathGet, id)
-	//body, err := c.HttpRequest(ctx, http.MethodGet, requestPath, nil, nil, &bytes.Buffer{})
-	//if err != nil {
-	//	return diag.FromErr(err)
-	//}
-	//retVal := &client.CollectionContainer{}
-	//err = json.NewDecoder(body).Decode(retVal)
-	//if err != nil {
-	//	return diag.FromErr(err)
-	//}
-	//retVal.Child.Info.WorkspaceId = workspaceId
-	//fillResourceDataFromCollection(retVal, d)
+	c := m.(*client.Client)
+	collectionSchema := map[string]string{
+		"meta": dsl.DICT_TAG,
+	}
+	doc, err := dsl.ImportDoc(c.GetAbsolutePath(d.Id()), collectionSchema)
+	if err != nil {
+		d.SetId("")
+		return diag.FromErr(err)
+	}
+	metaBlock, err := doc.GetBlock("meta")
+	if err != nil {
+		d.SetId("")
+		return diag.FromErr(err)
+	}
+	metaDict := metaBlock.(*dsl.BruDict)
+	name := metaDict.Data["name"].(string)
+	d.Set("name", name)
 	return diags
 }
 
 func resourceCollectionDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
-	//_, id := client.CollectionDecodeId(d.Id())
-	//c := m.(*client.Client)
-	//requestPath := fmt.Sprintf(client.CollectionPathGet, id)
-	//_, err := c.HttpRequest(ctx, http.MethodDelete, requestPath, nil, nil, &bytes.Buffer{})
-	//if err != nil {
-	//	return diag.FromErr(err)
-	//}
-	//d.SetId("")
+	c := m.(*client.Client)
+	err := os.Remove(c.GetAbsolutePath("bruno.json"))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = os.Remove(c.GetAbsolutePath(d.Id()))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.SetId("")
 	return diags
 }

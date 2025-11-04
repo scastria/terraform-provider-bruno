@@ -10,6 +10,6 @@ provider "bruno" {
   collection_path = "/Users/shawncastrianni/GIT/bruno/terraform"
 }
 
-resource "bruno_collection" "Collection" {
-  name = "test"
-}
+# resource "bruno_collection" "Collection" {
+#   name = "test"
+# }

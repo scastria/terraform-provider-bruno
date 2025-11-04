@@ -12,6 +12,10 @@ type BruText struct {
 	Data string
 }
 
+func (bt *BruText) GetTag() string {
+	return bt.Tag
+}
+
 func (bt *BruText) Export() string {
 	var retVal strings.Builder
 	retVal.WriteString(fmt.Sprintf("%s {\n", bt.Tag))
