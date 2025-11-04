@@ -1,15 +1,91 @@
 package dsl
 
-import "strings"
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"regexp"
+	"strings"
+)
+
+const (
+	DICT_TAG    = "dict"
+	TEXT_TAG    = "text"
+	ARRAY_TAG   = "array"
+	BLANK       = `^\s*$`
+	BLOCK_START = `^\s*(?P<tag>\S+)\s*[{\[]$`
+	BLOCK_END   = `^\s*[}\]]$`
+	DICT_ITEM   = `^\s*(?P<key>\S+)\s*:\s*(?P<value>.*)\s*$`
+	ARRAY_ITEM  = `^\s*(?P<value>.+?),?\s*$`
+)
 
 type BruDoc struct {
 	Data []BruBlock
 }
 
-func (bt BruDoc) Export() string {
+func (bt *BruDoc) Export() string {
 	var retVal strings.Builder
 	for _, block := range bt.Data {
 		retVal.WriteString(block.Export())
 	}
 	return retVal.String()
+}
+
+func ImportDoc(filePath string, schema map[string]string) (*BruDoc, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	blocks := []BruBlock{}
+	regex := map[string]*regexp.Regexp{
+		BLANK:       regexp.MustCompile(BLANK),
+		BLOCK_START: regexp.MustCompile(BLOCK_START),
+		BLOCK_END:   regexp.MustCompile(BLOCK_END),
+		DICT_ITEM:   regexp.MustCompile(DICT_ITEM),
+		ARRAY_ITEM:  regexp.MustCompile(ARRAY_ITEM),
+	}
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		// Skip blank lines
+		matched := regex[BLANK].MatchString(line)
+		if matched {
+			continue
+		}
+		// Check for block start
+		matches := regex[BLOCK_START].FindStringSubmatch(line)
+		if matches != nil {
+			tag := matches[1]
+			switch schema[tag] {
+			case DICT_TAG:
+				dictBlock, err := ImportDict(tag, scanner, regex)
+				if err != nil {
+					return nil, err
+				}
+				blocks = append(blocks, dictBlock)
+				break
+			case TEXT_TAG:
+				textBlock, err := ImportText(tag, scanner, regex)
+				if err != nil {
+					return nil, err
+				}
+				blocks = append(blocks, textBlock)
+				break
+			case ARRAY_TAG:
+				arrayBlock, err := ImportArray(tag, scanner, regex)
+				if err != nil {
+					return nil, err
+				}
+				blocks = append(blocks, arrayBlock)
+				break
+			default:
+				return nil, fmt.Errorf("Unknown block tag: %s", tag)
+			}
+		}
+	}
+	retVal := &BruDoc{
+		Data: blocks,
+	}
+	return retVal, nil
 }

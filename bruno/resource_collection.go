@@ -61,7 +61,7 @@ func resourceCollectionCreate(ctx context.Context, d *schema.ResourceData, m int
 	}
 	bd := dsl.BruDoc{
 		Data: []dsl.BruBlock{
-			meta,
+			&meta,
 		},
 	}
 	err = os.WriteFile(filePath, []byte(bd.Export()), 0644)
