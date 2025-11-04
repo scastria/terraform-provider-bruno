@@ -24,7 +24,7 @@ func (ba *BruArray) Export() string {
 		if i == len(ba.Data)-1 {
 			suffix = ""
 		}
-		retVal.WriteString(fmt.Sprintf("\t%s%s\n", v, suffix))
+		retVal.WriteString(fmt.Sprintf("%s%s%s\n", ITEM_INDENT, v, suffix))
 	}
 	retVal.WriteString("]\n")
 	return retVal.String()

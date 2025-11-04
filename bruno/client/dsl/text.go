@@ -20,7 +20,7 @@ func (bt *BruText) Export() string {
 	var retVal strings.Builder
 	retVal.WriteString(fmt.Sprintf("%s {\n", bt.Tag))
 	for _, l := range strings.Split(bt.Data, "\n") {
-		retVal.WriteString(fmt.Sprintf("\t%s\n", l))
+		retVal.WriteString(fmt.Sprintf("%s%s\n", ITEM_INDENT, l))
 	}
 	retVal.WriteString("}\n")
 	return retVal.String()
@@ -39,6 +39,8 @@ func ImportText(tag string, scanner *bufio.Scanner, regex map[string]*regexp.Reg
 			retVal.Data = strings.Join(lines, "\n")
 			return &retVal, nil
 		}
+		// Since not using REGEX, must handle indent removal here
+		line = strings.TrimPrefix(line, ITEM_INDENT)
 		lines = append(lines, line)
 	}
 	return nil, fmt.Errorf("Unexpected end of file while parsing text block: %s", tag)

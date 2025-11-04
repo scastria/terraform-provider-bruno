@@ -22,7 +22,12 @@ resource "bruno_collection" "Collection" {
     key = "hi2"
     value = "there2"
   }
-  # post_response_var {
-  #   key = "hip"
-  # }
+  pre_request_script = split("\n",
+  <<-EOT
+    now
+    is
+      indented
+    the
+  EOT
+  )
 }

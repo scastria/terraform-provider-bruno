@@ -20,7 +20,7 @@ func (bd *BruDict) Export() string {
 	var retVal strings.Builder
 	retVal.WriteString(fmt.Sprintf("%s {\n", bd.Tag))
 	for k, v := range bd.Data {
-		retVal.WriteString(fmt.Sprintf("\t%s: %v\n", k, v))
+		retVal.WriteString(fmt.Sprintf("%s%s: %v\n", ITEM_INDENT, k, v))
 	}
 	retVal.WriteString("}\n")
 	return retVal.String()

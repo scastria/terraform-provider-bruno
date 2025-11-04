@@ -13,6 +13,7 @@ const (
 	TEXT_TAG        = "text"
 	ARRAY_TAG       = "array"
 	DISABLED_PREFIX = "~"
+	ITEM_INDENT     = "  "
 	BLANK           = `^\s*$`
 	BLOCK_START     = `^\s*(?P<tag>\S+)\s*[{\[]$`
 	BLOCK_END       = `^\s*[}\]]$`

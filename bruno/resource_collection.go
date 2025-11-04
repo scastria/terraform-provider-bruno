@@ -15,10 +15,12 @@ import (
 )
 
 const (
-	COLLECTION_META_TAG               = "meta"
-	COLLECTION_AUTH_TAG               = "auth"
-	COLLECTION_PRE_REQUEST_VARS_TAG   = "vars:pre-request"
-	COLLECTION_POST_RESPONSE_VARS_TAG = "vars:post-response"
+	COLLECTION_META_TAG                 = "meta"
+	COLLECTION_AUTH_TAG                 = "auth"
+	COLLECTION_PRE_REQUEST_VARS_TAG     = "vars:pre-request"
+	COLLECTION_POST_RESPONSE_VARS_TAG   = "vars:post-response"
+	COLLECTION_PRE_REQUEST_SCRIPT_TAG   = "script:pre-request"
+	COLLECTION_POST_RESPONSE_SCRIPT_TAG = "script:post-response"
 )
 
 func resourceCollection() *schema.Resource {
@@ -102,6 +104,22 @@ func resourceCollection() *schema.Resource {
 					},
 				},
 			},
+			"pre_request_script": {
+				Type:     schema.TypeList,
+				ForceNew: true,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"post_response_script": {
+				Type:     schema.TypeList,
+				ForceNew: true,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 		},
 	}
 }
@@ -119,6 +137,15 @@ func createVariableDictBlockFromMap(tag string, variables *schema.Set) *dsl.BruD
 		}
 		retVal.Data[fmt.Sprintf("%s%s", varPrefix, variableMap["key"].(string))] = variableMap["value"].(string)
 	}
+	return &retVal
+}
+
+func createTextBlockFromArray(tag string, arr []interface{}) *dsl.BruText {
+	retVal := dsl.BruText{
+		Tag: tag,
+	}
+	lines := convertInterfaceArrayToStringArray(arr)
+	retVal.Data = strings.Join(lines, "\n")
 	return &retVal
 }
 
@@ -178,6 +205,18 @@ func resourceCollectionCreate(ctx context.Context, d *schema.ResourceData, m int
 		postResponseVarDict := createVariableDictBlockFromMap(COLLECTION_POST_RESPONSE_VARS_TAG, postResponseVariables.(*schema.Set))
 		bd.Data = append(bd.Data, postResponseVarDict)
 	}
+	// pre_request_script
+	preRequestScript, ok := d.GetOk("pre_request_script")
+	if ok {
+		preRequestScriptText := createTextBlockFromArray(COLLECTION_PRE_REQUEST_SCRIPT_TAG, preRequestScript.([]interface{}))
+		bd.Data = append(bd.Data, preRequestScriptText)
+	}
+	// post_response_script
+	postResponseScript, ok := d.GetOk("post_response_script")
+	if ok {
+		postResponseScriptText := createTextBlockFromArray(COLLECTION_POST_RESPONSE_SCRIPT_TAG, postResponseScript.([]interface{}))
+		bd.Data = append(bd.Data, postResponseScriptText)
+	}
 	relativePath := "collection.bru"
 	err = bd.ExportDoc(c.GetAbsolutePath(relativePath))
 	if err != nil {
@@ -200,14 +239,20 @@ func createMapFromVariableDictBlock(variableDict *dsl.BruDict) []map[string]inte
 	return retVal
 }
 
+func createArrayFromTextBlock(textBlock *dsl.BruText) []string {
+	return strings.Split(textBlock.Data, "\n")
+}
+
 func resourceCollectionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
 	c := m.(*client.Client)
 	collectionSchema := map[string]string{
-		COLLECTION_META_TAG:               dsl.DICT_TAG,
-		COLLECTION_AUTH_TAG:               dsl.DICT_TAG,
-		COLLECTION_PRE_REQUEST_VARS_TAG:   dsl.DICT_TAG,
-		COLLECTION_POST_RESPONSE_VARS_TAG: dsl.DICT_TAG,
+		COLLECTION_META_TAG:                 dsl.DICT_TAG,
+		COLLECTION_AUTH_TAG:                 dsl.DICT_TAG,
+		COLLECTION_PRE_REQUEST_VARS_TAG:     dsl.DICT_TAG,
+		COLLECTION_POST_RESPONSE_VARS_TAG:   dsl.DICT_TAG,
+		COLLECTION_PRE_REQUEST_SCRIPT_TAG:   dsl.TEXT_TAG,
+		COLLECTION_POST_RESPONSE_SCRIPT_TAG: dsl.TEXT_TAG,
 	}
 	doc, err := dsl.ImportDoc(c.GetAbsolutePath(d.Id()), collectionSchema)
 	if err != nil {
@@ -243,6 +288,20 @@ func resourceCollectionRead(ctx context.Context, d *schema.ResourceData, m inter
 		postResponseVarDict := postResponseVarBlock.(*dsl.BruDict)
 		postResponseVariableMap := createMapFromVariableDictBlock(postResponseVarDict)
 		d.Set("post_response_var", postResponseVariableMap)
+	}
+	// pre_request_script
+	preRequestScriptBlock, err := doc.GetBlock(COLLECTION_PRE_REQUEST_SCRIPT_TAG)
+	if err == nil {
+		preRequestScriptText := preRequestScriptBlock.(*dsl.BruText)
+		preRequestScriptArr := createArrayFromTextBlock(preRequestScriptText)
+		d.Set("pre_request_script", preRequestScriptArr)
+	}
+	// post_response_script
+	postResponseScriptBlock, err := doc.GetBlock(COLLECTION_POST_RESPONSE_SCRIPT_TAG)
+	if err == nil {
+		postResponseScriptText := postResponseScriptBlock.(*dsl.BruText)
+		postResponseScriptArr := createArrayFromTextBlock(postResponseScriptText)
+		d.Set("post_response_script", postResponseScriptArr)
 	}
 	return diags
 }
