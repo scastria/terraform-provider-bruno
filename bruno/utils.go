@@ -60,3 +60,11 @@ func createMapFromVariableDictBlock(variableDict *dsl.BruDict) []map[string]inte
 func createArrayFromTextBlock(textBlock *dsl.BruText) []string {
 	return strings.Split(textBlock.Data, "\n")
 }
+
+func prepareFolderName(name string) string {
+	// Remove any leading slashes
+	name = strings.TrimLeft(name, "/")
+	// Replace any remaining slashes with hyphens
+	name = strings.ReplaceAll(name, "/", "-")
+	return name
+}

@@ -99,7 +99,7 @@ func resourceFolderCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m
 		testsText := createTextBlockFromArray(FOLDER_TESTS_TAG, tests.([]interface{}))
 		bd.Data = append(bd.Data, testsText)
 	}
-	absPath := c.GetAbsolutePath(path.Dir(parentFolderId), name, "folder.bru")
+	absPath := c.GetAbsolutePath(path.Dir(parentFolderId), prepareFolderName(name), "folder.bru")
 	err := bd.ExportDoc(absPath)
 	if err != nil {
 		if isCreate {
@@ -157,6 +157,12 @@ func resourceFolderRead(ctx context.Context, d *schema.ResourceData, m interface
 		testsText := testsBlock.(*dsl.BruText)
 		testsArr := createArrayFromTextBlock(testsText)
 		d.Set("tests", testsArr)
+	}
+	// parent_folder_id
+	parentFolderDir := path.Dir(path.Dir(d.Id()))
+	if parentFolderDir != "." {
+		parentFolderId := path.Join(parentFolderDir, "folder.bru")
+		d.Set("parent_folder_id", parentFolderId)
 	}
 	return diags
 }

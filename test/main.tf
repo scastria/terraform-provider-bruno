@@ -50,3 +50,8 @@ resource "bruno_folder" "ChildFolder" {
   EOT
   )
 }
+
+resource "bruno_folder" "ProblemFolder" {
+  parent_folder_id = bruno_folder.Folder1.id
+  name = "/ids/countries/{id}"
+}
