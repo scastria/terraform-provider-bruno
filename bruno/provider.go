@@ -19,6 +19,7 @@ func Provider() *schema.Provider {
 		ResourcesMap: map[string]*schema.Resource{
 			"bruno_collection": resourceCollection(),
 			"bruno_folder":     resourceFolder(),
+			"bruno_request":    resourceRequest(),
 		},
 		DataSourcesMap:       map[string]*schema.Resource{},
 		ConfigureContextFunc: providerConfigure,

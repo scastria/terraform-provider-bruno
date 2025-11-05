@@ -55,3 +55,14 @@ resource "bruno_folder" "ProblemFolder" {
   parent_folder_id = bruno_folder.Folder1.id
   name = "/ids/countries/{id}"
 }
+
+resource "bruno_request" "Request" {
+  folder_id = bruno_folder.ChildFolder.id
+  name = "get"
+  base_url = "https://httpbin.konghq.com/anything"
+  query_param {
+    key = "sample"
+    value = "value2"
+  }
+}
+

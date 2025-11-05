@@ -239,33 +239,41 @@ func resourceCollectionRead(ctx context.Context, d *schema.ResourceData, m inter
 		d.Set("auth", auth)
 	}
 	// pre_request_var
+	var preRequestVariableMap []map[string]interface{}
+	preRequestVariableMap = nil
 	preRequestVarBlock, err := doc.GetBlock(COLLECTION_PRE_REQUEST_VARS_TAG)
 	if err == nil {
 		preRequestVarDict := preRequestVarBlock.(*dsl.BruDict)
-		preRequestVariableMap := createMapFromVariableDictBlock(preRequestVarDict)
-		d.Set("pre_request_var", preRequestVariableMap)
+		preRequestVariableMap = createMapFromVariableDictBlock(preRequestVarDict)
 	}
+	d.Set("pre_request_var", preRequestVariableMap)
 	// post_response_var
+	var postResponseVariableMap []map[string]interface{}
+	postResponseVariableMap = nil
 	postResponseVarBlock, err := doc.GetBlock(COLLECTION_POST_RESPONSE_VARS_TAG)
 	if err == nil {
 		postResponseVarDict := postResponseVarBlock.(*dsl.BruDict)
-		postResponseVariableMap := createMapFromVariableDictBlock(postResponseVarDict)
-		d.Set("post_response_var", postResponseVariableMap)
+		postResponseVariableMap = createMapFromVariableDictBlock(postResponseVarDict)
 	}
+	d.Set("post_response_var", postResponseVariableMap)
 	// pre_request_script
+	var preRequestScriptArr []string
+	preRequestScriptArr = nil
 	preRequestScriptBlock, err := doc.GetBlock(COLLECTION_PRE_REQUEST_SCRIPT_TAG)
 	if err == nil {
 		preRequestScriptText := preRequestScriptBlock.(*dsl.BruText)
-		preRequestScriptArr := createArrayFromTextBlock(preRequestScriptText)
-		d.Set("pre_request_script", preRequestScriptArr)
+		preRequestScriptArr = createArrayFromTextBlock(preRequestScriptText)
 	}
+	d.Set("pre_request_script", preRequestScriptArr)
 	// post_response_script
+	var postResponseScriptArr []string
+	postResponseScriptArr = nil
 	postResponseScriptBlock, err := doc.GetBlock(COLLECTION_POST_RESPONSE_SCRIPT_TAG)
 	if err == nil {
 		postResponseScriptText := postResponseScriptBlock.(*dsl.BruText)
-		postResponseScriptArr := createArrayFromTextBlock(postResponseScriptText)
-		d.Set("post_response_script", postResponseScriptArr)
+		postResponseScriptArr = createArrayFromTextBlock(postResponseScriptText)
 	}
+	d.Set("post_response_script", postResponseScriptArr)
 	return diags
 }
 

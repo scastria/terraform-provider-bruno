@@ -152,12 +152,14 @@ func resourceFolderRead(ctx context.Context, d *schema.ResourceData, m interface
 		d.Set("auth", auth)
 	}
 	// tests
+	var testsArr []string
+	testsArr = nil
 	testsBlock, err := doc.GetBlock(FOLDER_TESTS_TAG)
 	if err == nil {
 		testsText := testsBlock.(*dsl.BruText)
-		testsArr := createArrayFromTextBlock(testsText)
-		d.Set("tests", testsArr)
+		testsArr = createArrayFromTextBlock(testsText)
 	}
+	d.Set("tests", testsArr)
 	// parent_folder_id
 	parentFolderDir := path.Dir(path.Dir(d.Id()))
 	if parentFolderDir != "." {
