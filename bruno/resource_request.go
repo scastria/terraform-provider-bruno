@@ -271,6 +271,7 @@ func resourceRequestRead(ctx context.Context, d *schema.ResourceData, m interfac
 		REQUEST_TRACE_TAG:        dsl.DICT_TAG,
 		REQUEST_QUERY_PARAMS_TAG: dsl.DICT_TAG,
 		REQUEST_JSON_BODY_TAG:    dsl.TEXT_TAG,
+		REQUEST_HEADERS_TAG:      dsl.DICT_TAG,
 	}
 	doc, err := dsl.ImportDoc(c.GetAbsolutePath(d.Id()), requestSchema)
 	if err != nil {
