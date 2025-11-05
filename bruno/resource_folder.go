@@ -13,9 +13,11 @@ import (
 )
 
 const (
-	FOLDER_META_TAG  = "meta"
-	FOLDER_AUTH_TAG  = "auth"
-	FOLDER_TESTS_TAG = "tests"
+	FOLDER_META_TAG               = "meta"
+	FOLDER_AUTH_TAG               = "auth"
+	FOLDER_PRE_REQUEST_VARS_TAG   = "vars:pre-request"
+	FOLDER_POST_RESPONSE_VARS_TAG = "vars:post-response"
+	FOLDER_TESTS_TAG              = "tests"
 )
 
 func resourceFolder() *schema.Resource {
@@ -55,6 +57,48 @@ func resourceFolder() *schema.Resource {
 					"wsse",
 				}, false),
 			},
+			"pre_request_var": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"disabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+					},
+				},
+			},
+			"post_response_var": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"disabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+					},
+				},
+			},
 			"tests": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -93,6 +137,18 @@ func resourceFolderCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m
 		}
 		bd.Data = append(bd.Data, &auth)
 	}
+	// pre_request_var
+	preRequestVariables, ok := d.GetOk("pre_request_var")
+	if ok {
+		preRequestVarDict := createVariableDictBlockFromMap(FOLDER_PRE_REQUEST_VARS_TAG, preRequestVariables.(*schema.Set))
+		bd.Data = append(bd.Data, preRequestVarDict)
+	}
+	// post_response_var
+	postResponseVariables, ok := d.GetOk("post_response_var")
+	if ok {
+		postResponseVarDict := createVariableDictBlockFromMap(FOLDER_POST_RESPONSE_VARS_TAG, postResponseVariables.(*schema.Set))
+		bd.Data = append(bd.Data, postResponseVarDict)
+	}
 	// tests
 	tests, ok := d.GetOk("tests")
 	if ok {
@@ -126,9 +182,11 @@ func resourceFolderRead(ctx context.Context, d *schema.ResourceData, m interface
 	var diags diag.Diagnostics
 	c := m.(*client.Client)
 	folderSchema := map[string]string{
-		FOLDER_META_TAG:  dsl.DICT_TAG,
-		FOLDER_AUTH_TAG:  dsl.DICT_TAG,
-		FOLDER_TESTS_TAG: dsl.TEXT_TAG,
+		FOLDER_META_TAG:               dsl.DICT_TAG,
+		FOLDER_AUTH_TAG:               dsl.DICT_TAG,
+		FOLDER_PRE_REQUEST_VARS_TAG:   dsl.DICT_TAG,
+		FOLDER_POST_RESPONSE_VARS_TAG: dsl.DICT_TAG,
+		FOLDER_TESTS_TAG:              dsl.TEXT_TAG,
 	}
 	doc, err := dsl.ImportDoc(c.GetAbsolutePath(d.Id()), folderSchema)
 	if err != nil {
@@ -151,6 +209,24 @@ func resourceFolderRead(ctx context.Context, d *schema.ResourceData, m interface
 		auth := authDict.Data["mode"].(string)
 		d.Set("auth", auth)
 	}
+	// pre_request_var
+	var preRequestVariableMap []map[string]interface{}
+	preRequestVariableMap = nil
+	preRequestVarBlock, err := doc.GetBlock(FOLDER_PRE_REQUEST_VARS_TAG)
+	if err == nil {
+		preRequestVarDict := preRequestVarBlock.(*dsl.BruDict)
+		preRequestVariableMap = createMapFromVariableDictBlock(preRequestVarDict)
+	}
+	d.Set("pre_request_var", preRequestVariableMap)
+	// post_response_var
+	var postResponseVariableMap []map[string]interface{}
+	postResponseVariableMap = nil
+	postResponseVarBlock, err := doc.GetBlock(FOLDER_POST_RESPONSE_VARS_TAG)
+	if err == nil {
+		postResponseVarDict := postResponseVarBlock.(*dsl.BruDict)
+		postResponseVariableMap = createMapFromVariableDictBlock(postResponseVarDict)
+	}
+	d.Set("post_response_var", postResponseVariableMap)
 	// tests
 	var testsArr []string
 	testsArr = nil
