@@ -191,6 +191,9 @@ func resourceFolderRead(ctx context.Context, d *schema.ResourceData, m interface
 	doc, err := dsl.ImportDoc(c.GetAbsolutePath(d.Id()), folderSchema)
 	if err != nil {
 		d.SetId("")
+		if os.IsNotExist(err) {
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 	// meta
@@ -254,7 +257,9 @@ func resourceFolderDelete(ctx context.Context, d *schema.ResourceData, m interfa
 	c := m.(*client.Client)
 	err := os.Remove(c.GetAbsolutePath(d.Id()))
 	if err != nil {
-		return diag.FromErr(err)
+		if !os.IsNotExist(err) {
+			return diag.FromErr(err)
+		}
 	}
 	d.SetId("")
 	return diags

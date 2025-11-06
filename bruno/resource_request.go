@@ -276,6 +276,9 @@ func resourceRequestRead(ctx context.Context, d *schema.ResourceData, m interfac
 	doc, err := dsl.ImportDoc(c.GetAbsolutePath(d.Id()), requestSchema)
 	if err != nil {
 		d.SetId("")
+		if os.IsNotExist(err) {
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 	// meta
@@ -379,7 +382,9 @@ func resourceRequestDelete(ctx context.Context, d *schema.ResourceData, m interf
 	c := m.(*client.Client)
 	err := os.Remove(c.GetAbsolutePath(d.Id()))
 	if err != nil {
-		return diag.FromErr(err)
+		if !os.IsNotExist(err) {
+			return diag.FromErr(err)
+		}
 	}
 	d.SetId("")
 	return diags

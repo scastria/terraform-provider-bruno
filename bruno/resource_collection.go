@@ -220,6 +220,9 @@ func resourceCollectionRead(ctx context.Context, d *schema.ResourceData, m inter
 	doc, err := dsl.ImportDoc(c.GetAbsolutePath(d.Id()), collectionSchema)
 	if err != nil {
 		d.SetId("")
+		if os.IsNotExist(err) {
+			return diags
+		}
 		return diag.FromErr(err)
 	}
 	// meta
@@ -286,11 +289,15 @@ func resourceCollectionDelete(ctx context.Context, d *schema.ResourceData, m int
 	c := m.(*client.Client)
 	err := os.Remove(c.GetAbsolutePath("bruno.json"))
 	if err != nil {
-		return diag.FromErr(err)
+		if !os.IsNotExist(err) {
+			return diag.FromErr(err)
+		}
 	}
 	err = os.Remove(c.GetAbsolutePath(d.Id()))
 	if err != nil {
-		return diag.FromErr(err)
+		if !os.IsNotExist(err) {
+			return diag.FromErr(err)
+		}
 	}
 	d.SetId("")
 	return diags
