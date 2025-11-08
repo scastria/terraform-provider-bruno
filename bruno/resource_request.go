@@ -172,7 +172,7 @@ func resourceRequestCreateOrUpdate(ctx context.Context, d *schema.ResourceData, 
 	// meta
 	meta := dsl.BruDict{
 		Tag: REQUEST_META_TAG,
-		Data: map[string]interface{}{
+		Data: map[string]string{
 			"name": name,
 			"type": requestType,
 		},
@@ -181,8 +181,7 @@ func resourceRequestCreateOrUpdate(ctx context.Context, d *schema.ResourceData, 
 	// method
 	methodDict := dsl.BruDict{
 		Tag: method,
-		Data: map[string]interface{}{
-			//"url":  baseUrl,
+		Data: map[string]string{
 			"body": "none",
 		},
 	}
@@ -201,7 +200,7 @@ func resourceRequestCreateOrUpdate(ctx context.Context, d *schema.ResourceData, 
 			if strings.HasPrefix(k, dsl.DISABLED_PREFIX) {
 				continue
 			}
-			requestQuery.Add(k, fmt.Sprintf("%v", v))
+			requestQuery.Add(k, fmt.Sprintf("%s", v))
 		}
 		bd.Data = append(bd.Data, queryParamDict)
 	}
@@ -288,9 +287,9 @@ func resourceRequestRead(ctx context.Context, d *schema.ResourceData, m interfac
 		return diag.FromErr(err)
 	}
 	metaDict := metaBlock.(*dsl.BruDict)
-	name := metaDict.Data["name"].(string)
+	name := metaDict.Data["name"]
 	d.Set("name", name)
-	requestType := metaDict.Data["type"].(string)
+	requestType := metaDict.Data["type"]
 	d.Set("type", requestType)
 	// method
 	// Have to check all possible methods
@@ -322,10 +321,10 @@ func resourceRequestRead(ctx context.Context, d *schema.ResourceData, m interfac
 			d.Set("auth", auth)
 		}
 		// base_url
-		url, exists := methodDict.Data["url"]
+		fullUrl, exists := methodDict.Data["url"]
 		if exists {
 			// Manually strip query params to prevent URL parsing from escaping variables in the host and path
-			d.Set("base_url", strings.Split(url.(string), "?")[0])
+			d.Set("base_url", strings.Split(fullUrl, "?")[0])
 		}
 	}
 	// query_param

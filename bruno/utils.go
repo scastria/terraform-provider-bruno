@@ -23,7 +23,7 @@ func convertInterfaceArrayToStringArray(arr []interface{}) []string {
 func createVariableDictBlockFromMap(tag string, variables *schema.Set) *dsl.BruDict {
 	retVal := dsl.BruDict{
 		Tag:  tag,
-		Data: make(map[string]interface{}),
+		Data: make(map[string]string),
 	}
 	for _, variable := range variables.List() {
 		variableMap := variable.(map[string]interface{})

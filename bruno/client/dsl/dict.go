@@ -9,7 +9,7 @@ import (
 
 type BruDict struct {
 	Tag  string
-	Data map[string]interface{}
+	Data map[string]string
 }
 
 func (bd *BruDict) GetTag() string {
@@ -20,7 +20,7 @@ func (bd *BruDict) Export() string {
 	var retVal strings.Builder
 	retVal.WriteString(fmt.Sprintf("%s {\n", bd.Tag))
 	for k, v := range bd.Data {
-		retVal.WriteString(fmt.Sprintf("%s%s: %v\n", ITEM_INDENT, k, v))
+		retVal.WriteString(fmt.Sprintf("%s%s: %s\n", ITEM_INDENT, k, v))
 	}
 	retVal.WriteString("}\n")
 	return retVal.String()
@@ -29,7 +29,7 @@ func (bd *BruDict) Export() string {
 func ImportDict(tag string, scanner *bufio.Scanner, regex map[string]*regexp.Regexp) (*BruDict, error) {
 	retVal := BruDict{
 		Tag:  tag,
-		Data: make(map[string]interface{}),
+		Data: make(map[string]string),
 	}
 	for scanner.Scan() {
 		line := scanner.Text()

@@ -121,7 +121,7 @@ func resourceFolderCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m
 	// meta
 	meta := dsl.BruDict{
 		Tag: FOLDER_META_TAG,
-		Data: map[string]interface{}{
+		Data: map[string]string{
 			"name": name,
 		},
 	}
@@ -131,7 +131,7 @@ func resourceFolderCreateOrUpdate(ctx context.Context, d *schema.ResourceData, m
 	if ok {
 		auth := dsl.BruDict{
 			Tag: FOLDER_AUTH_TAG,
-			Data: map[string]interface{}{
+			Data: map[string]string{
 				"mode": mode.(string),
 			},
 		}
@@ -203,13 +203,13 @@ func resourceFolderRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 	metaDict := metaBlock.(*dsl.BruDict)
-	name := metaDict.Data["name"].(string)
+	name := metaDict.Data["name"]
 	d.Set("name", name)
 	// auth
 	authBlock, err := doc.GetBlock(FOLDER_AUTH_TAG)
 	if err == nil {
 		authDict := authBlock.(*dsl.BruDict)
-		auth := authDict.Data["mode"].(string)
+		auth := authDict.Data["mode"]
 		d.Set("auth", auth)
 	}
 	// pre_request_var

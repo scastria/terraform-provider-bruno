@@ -143,7 +143,7 @@ func resourceCollectionCreateOrUpdate(ctx context.Context, d *schema.ResourceDat
 	// meta
 	meta := dsl.BruDict{
 		Tag: COLLECTION_META_TAG,
-		Data: map[string]interface{}{
+		Data: map[string]string{
 			"name": d.Get("name").(string),
 		},
 	}
@@ -153,7 +153,7 @@ func resourceCollectionCreateOrUpdate(ctx context.Context, d *schema.ResourceDat
 	if ok {
 		auth := dsl.BruDict{
 			Tag: COLLECTION_AUTH_TAG,
-			Data: map[string]interface{}{
+			Data: map[string]string{
 				"mode": mode.(string),
 			},
 		}
@@ -232,13 +232,13 @@ func resourceCollectionRead(ctx context.Context, d *schema.ResourceData, m inter
 		return diag.FromErr(err)
 	}
 	metaDict := metaBlock.(*dsl.BruDict)
-	name := metaDict.Data["name"].(string)
+	name := metaDict.Data["name"]
 	d.Set("name", name)
 	// auth
 	authBlock, err := doc.GetBlock(COLLECTION_AUTH_TAG)
 	if err == nil {
 		authDict := authBlock.(*dsl.BruDict)
-		auth := authDict.Data["mode"].(string)
+		auth := authDict.Data["mode"]
 		d.Set("auth", auth)
 	}
 	// pre_request_var
