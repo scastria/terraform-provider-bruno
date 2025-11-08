@@ -28,8 +28,8 @@ resource "bruno_request" "example" {
 * `auth` - **(Optional, String)** The authentication for the request. Allowed values: `none`, `apikey`, `awsv4`, `basic`, `bearer`, `digest`, `inherit`, `ntlm`, `oauth2`, `wsse`. Default: `none`.
 * `base_url` - **(Required, String)** The base url of the request (excluding query params).
 * `body` - **(Optional, List of String)** The raw JSON body of the request.
-* `query_param` - **(Optional, list{query_param})** Configuration block for a query_param.  Can be specified multiple times for each query_param.  Each block supports the fields documented below.
-* `header` - **(Optional, list{header})** Configuration block for a header.  Can be specified multiple times for each header.  Each block supports the fields documented below.
+* `query_param` - **(Optional, list{query_param})** Configuration block for a query_param.  Can be specified multiple times for each query_param (allows same key for a multi-value parameter).  Each block supports the fields documented below.
+* `header` - **(Optional, list{header})** Configuration block for a header.  Can be specified multiple times for each header (allows same key for a multi-value header).  Each block supports the fields documented below.
 * `tests` - **(Optional, List of String)** The tests to perform after the response.
 ## query_param
 * `key` - **(Required, String)** The name of the query param.

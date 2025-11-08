@@ -195,12 +195,14 @@ func resourceRequestCreateOrUpdate(ctx context.Context, d *schema.ResourceData, 
 	queryParams, ok := d.GetOk("query_param")
 	requestQuery := url.Values{}
 	if ok {
-		queryParamDict := createVariableDictBlockFromMap(REQUEST_QUERY_PARAMS_TAG, queryParams.(*schema.Set))
+		queryParamDict := createQueryParamMultiDictBlockFromMap(REQUEST_QUERY_PARAMS_TAG, queryParams.(*schema.Set))
 		for k, v := range queryParamDict.Data {
 			if strings.HasPrefix(k, dsl.DISABLED_PREFIX) {
 				continue
 			}
-			requestQuery.Add(k, fmt.Sprintf("%s", v))
+			for _, v := range v {
+				requestQuery.Add(k, v)
+			}
 		}
 		bd.Data = append(bd.Data, queryParamDict)
 	}
@@ -268,9 +270,9 @@ func resourceRequestRead(ctx context.Context, d *schema.ResourceData, m interfac
 		REQUEST_POST_TAG:         dsl.DICT_TAG,
 		REQUEST_PUT_TAG:          dsl.DICT_TAG,
 		REQUEST_TRACE_TAG:        dsl.DICT_TAG,
-		REQUEST_QUERY_PARAMS_TAG: dsl.DICT_TAG,
+		REQUEST_QUERY_PARAMS_TAG: dsl.MULTI_DICT_TAG,
 		REQUEST_JSON_BODY_TAG:    dsl.TEXT_TAG,
-		REQUEST_HEADERS_TAG:      dsl.DICT_TAG,
+		REQUEST_HEADERS_TAG:      dsl.MULTI_DICT_TAG,
 	}
 	doc, err := dsl.ImportDoc(c.GetAbsolutePath(d.Id()), requestSchema)
 	if err != nil {
@@ -332,8 +334,8 @@ func resourceRequestRead(ctx context.Context, d *schema.ResourceData, m interfac
 	queryParamMap = nil
 	queryParamBlock, err := doc.GetBlock(REQUEST_QUERY_PARAMS_TAG)
 	if err == nil {
-		queryParamDict := queryParamBlock.(*dsl.BruDict)
-		queryParamMap = createMapFromVariableDictBlock(queryParamDict)
+		queryParamDict := queryParamBlock.(*dsl.BruMultiDict)
+		queryParamMap = createMapFromQueryParamMultiDictBlock(queryParamDict)
 	}
 	d.Set("query_param", queryParamMap)
 	// header
@@ -341,8 +343,8 @@ func resourceRequestRead(ctx context.Context, d *schema.ResourceData, m interfac
 	headerMap = nil
 	headerBlock, err := doc.GetBlock(REQUEST_HEADERS_TAG)
 	if err == nil {
-		headerDict := headerBlock.(*dsl.BruDict)
-		headerMap = createMapFromVariableDictBlock(headerDict)
+		headerDict := headerBlock.(*dsl.BruMultiDict)
+		headerMap = createMapFromQueryParamMultiDictBlock(headerDict)
 	}
 	d.Set("header", headerMap)
 	// body

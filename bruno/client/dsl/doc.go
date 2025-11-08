@@ -11,6 +11,7 @@ import (
 
 const (
 	DICT_TAG        = "dict"
+	MULTI_DICT_TAG  = "multiDict"
 	TEXT_TAG        = "text"
 	ARRAY_TAG       = "array"
 	DISABLED_PREFIX = "~"
@@ -81,6 +82,13 @@ func ImportDoc(filePath string, schema map[string]string) (*BruDoc, error) {
 					return nil, err
 				}
 				blocks = append(blocks, dictBlock)
+				break
+			case MULTI_DICT_TAG:
+				multiDictBlock, err := ImportMultiDict(tag, scanner, regex)
+				if err != nil {
+					return nil, err
+				}
+				blocks = append(blocks, multiDictBlock)
 				break
 			case TEXT_TAG:
 				textBlock, err := ImportText(tag, scanner, regex)

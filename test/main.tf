@@ -64,5 +64,14 @@ resource "bruno_request" "Request" {
     key = "sample"
     value = "value2"
   }
+  query_param {
+    key = "sample"
+    value = "value"
+  }
+  query_param {
+    key = "sample"
+    value = "value2"
+    disabled = true
+  }
 }
 
