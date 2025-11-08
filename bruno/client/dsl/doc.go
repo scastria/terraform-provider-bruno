@@ -16,8 +16,8 @@ const (
 	DISABLED_PREFIX = "~"
 	ITEM_INDENT     = "  "
 	BLANK           = `^\s*$`
-	BLOCK_START     = `^\s*(?P<tag>\S+)\s*[{\[]$`
-	BLOCK_END       = `^\s*[}\]]$`
+	BLOCK_START     = `^(?P<tag>\S+)\s*[{\[]$`
+	BLOCK_END       = `^[}\]]$`
 	DICT_ITEM       = `^\s*(?P<key>\S+)\s*:\s*(?P<value>.*)\s*$`
 	ARRAY_ITEM      = `^\s*(?P<value>.+?),?\s*$`
 )
